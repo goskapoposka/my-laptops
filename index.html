@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Next-Gen 3D Laptop Configurator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <style>
+        :root {
+            --bg: #060608;
+            --ui-white: #ffffff;
+            --ui-panel: rgba(10, 11, 14, 0.75);
+            --border: rgba(255, 255, 255, 0.08);
+            --accent: #0071e3;
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background-color: var(--bg);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: var(--ui-white); user-select: none;
+        }
+
+        #webgl-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
+        }
+
+        /* --- HUD ИНТЕРФЕЙС ИЗ БУДУЩЕГО --- */
+        .hud-frame {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10; pointer-events: none; box-sizing: border-box;
+            border: 16px solid rgba(255, 255, 255, 0.03);
+        }
+
+        header {
+            position: absolute; top: 30px; left: 40px; right: 40px;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 20; pointer-events: auto;
+        }
+
+        .logo-block { display: flex; flex-direction: column; }
+        .logo-main { font-size: 22px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; background: linear-gradient(45deg, #fff, #8a8a93); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .logo-sub { font-size: 9px; opacity: 0.4; letter-spacing: 2px; margin-top: 4px; text-transform: uppercase; }
+
+        .lang-btn {
+            background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+            color: white; padding: 8px 16px; border-radius: 20px;
+            cursor: pointer; font-weight: 600; font-size: 11px; backdrop-filter: blur(10px); transition: all 0.3s;
+        }
+        .lang-btn:hover { background: white; color: black; box-shadow: 0 0 15px rgba(255,255,255,0.3); }
+
+        /* Левая информационная панель со спецификациями */
+        .specs-panel {
+            position: absolute; left: 40px; top: 120px; bottom: 140px;
+            width: 360px; background: var(--ui-panel); border: 1px solid var(--border);
+            backdrop-filter: blur(25px); border-radius: 20px; padding: 30px;
+            box-sizing: border-box; z-index: 20; pointer-events: auto;
+            display: flex; flex-direction: column; justify-content: space-between;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            overflow-y: auto;
+        }
+
+        .specs-panel::-webkit-scrollbar { width: 4px; }
+        .specs-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+        .product-title { font-size: 28px; font-weight: 800; margin: 0 0 10px 0; letter-spacing: -0.5px; }
+        .product-desc { font-size: 13px; opacity: 0.6; line-height: 1.6; margin: 0 0 20px 0; }
+        
+        .tech-list { display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--border); padding-top: 15px; }
+        .tech-item { font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
+        .tech-label { opacity: 0.4; text-transform: uppercase; font-size: 9px; letter-spacing: 1px; }
+        .tech-val { font-weight: 500; opacity: 0.95; }
+
+        /* Нижний горизонтальный слайдер иконок (10 штук) */
+        .tabs-wrapper {
+            position: absolute; bottom: 30px; left: 40px; right: 40px;
+            display: flex; justify-content: center; z-index: 20; pointer-events: auto;
+        }
+
+        .tabs-container {
+            display: flex; gap: 10px; background: var(--ui-panel);
+            padding: 8px; border-radius: 40px; border: 1px solid var(--border);
+            backdrop-filter: blur(20px); max-width: 90%; overflow-x: auto;
+        }
+        .tabs-container::-webkit-scrollbar { display: none; }
+
+        .tab-btn {
+            background: transparent; border: none; padding: 10px 18px;
+            border-radius: 30px; color: rgba(255,255,255,0.5); cursor: pointer;
+            font-weight: 600; font-size: 12px; display: flex; align-items: center;
+            gap: 8px; white-space: nowrap; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tab-btn svg { width: 16px; height: 16px; fill: currentColor; }
+        .tab-btn:hover { color: white; background: rgba(255,255,255,0.03); }
+        .tab-btn.active {
+            background: white; color: black; font-weight: 700;
+            box-shadow: 0 5px 15px rgba(255,255,255,0.25);
+        }
+
+        /* Выбор цветов внизу справа */
+        .color-palette {
+            position: absolute; right: 40px; top: 120px;
+            display: flex; flex-direction: column; gap: 14px;
+            background: var(--ui-panel); padding: 15px; border-radius: 30px;
+            border: 1px solid var(--border); backdrop-filter: blur(20px); z-index: 20; pointer-events: auto;
+        }
+
+        .palette-dot {
+            width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+            border: 2px solid transparent; transition: all 0.2s ease;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.4); position: relative;
+        }
+        .palette-dot:hover { transform: scale(1.2); }
+        .palette-dot.active { border-color: white; transform: scale(1.1); }
+        
+        .color-tooltip {
+            position: absolute; right: 35px; top: 50%; transform: translateY(-50%) translateX(-10px);
+            background: black; color: white; font-size: 10px; padding: 4px 8px; border-radius: 4px;
+            white-space: nowrap; opacity: 0; pointer-events: none; transition: all 0.2s;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .palette-dot:hover .color-tooltip { opacity: 1; transform: translateY(-50%) translateX(0); }
+
+        .hint-hold {
+            position: absolute; top: 40px; left: 50%; transform: translateX(-50%);
+            font-size: 10px; letter-spacing: 3px; text-transform: uppercase; opacity: 0.3;
+            z-index: 10; pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="webgl-container"></div>
+    <div class="hud-frame"></div>
+
+    <header>
+        <div class="logo-block">
+            <span class="logo-main">Gemini.Lap 10</span>
+            <span class="logo-sub" id="l-sub">Ultra-Quality 3D Showroom</span>
+        </div>
+        <button class="lang-btn" id="l-lang" onclick="changeLanguage()">EN</button>
+    </header>
+
+    <div class="hint-hold" id="l-hold">Зажмите мышь для студийного фокуса</div>
+
+    <div class="specs-panel">
+        <div>
+            <h1 class="product-title" id="p-title">-</h1>
+            <p class="product-desc" id="p-desc">-</p>
+        </div>
+        <div class="tech-list">
+            <div class="tech-item"><span class="tech-label" id="lbl-cpu">Процессор</span><span class="tech-val" id="v-cpu">-</span></div>
+            <div class="tech-item"><span class="tech-label" id="lbl-ram">ОЗУ</span><span class="tech-val" id="v-ram">-</span></div>
+            <div class="tech-item"><span class="tech-label" id="lbl-gpu">Графика</span><span class="tech-val" id="v-gpu">-</span></div>
+            <div class="tech-item"><span class="tech-label" id="lbl-screen">Дисплей</span><span class="tech-val" id="v-screen">-</span></div>
+            <div class="tech-item"><span class="tech-label" id="lbl-cool">Охлаждение</span><span class="tech-val" id="v-cool">-</span></div>
+            <div class="tech-item"><span class="tech-label" id="lbl-ports">Порты</span><span class="tech-val" id="v-ports">-</span></div>
+            <div class="tech-item"><span class="tech-label" id="lbl-bat">Батарея и вес</span><span class="tech-val" id="v-bat">-</span></div>
+        </div>
+    </div>
+
+    <div class="color-palette" id="palette-box"></div>
+
+    <div class="tabs-wrapper">
+        <div class="tabs-container" id="tabs-box"></div>
+    </div>
+
+    <script>
+        // --- БАЗА ДАННЫХ ИЗ 10 НОУТБУКОВ НА ДВУХ ЯЗЫКАХ ---
+        const database = {
+            ru: {
+                sub: "Высокотехнологичный 3D Шоурум", hold: "Зажмите мышь для студийного фокуса",
+                labels: { cpu:"Процессор", ram:"Оперативная память", gpu:"Видеокарта", screen:"Дисплей", cool:"Охлаждение", ports:"Интерфейсы", bat:"Батарея и вес" },
+                laptops: [
+                    { id: 0, name: "Aero Air 13", desc: "Ультрабук из авиационного алюминия. Идеальный баланс веса, автономности и стиля для создателей контента.", cpu: "Apple M3 (8 ядер, 4.0 ГГц)", ram: "16 ГБ LPDDR5X (Общая)", gpu: "10-ядерный графический чип Apple", screen: "13.6\" Liquid Retina, 2560x1664, 500 нит", cool: "Пассивное (0 дБ, без вентиляторов)", ports: "2x Thunderbolt 4, MagSafe 3, Audio Jack", bat: "52.6 Втч, до 18 часов работы / 1.24 кг", colors: [{n:"Space Gray", h:"#2e3033"}, {n:"Silver", h:"#e3e4e5"}, {n:"Midnight", h:#1e232a}] },
+                    { id: 1, name: "Titan 15 Pro", desc: "Экстремальный игровой монстр. С легкостью запускает любые ААА-игры на ультра-настройках графики.", cpu: "Intel Core i9-14900HX (24 ядра, 5.8 ГГц)", ram: "32 ГБ DDR5 5600 МГц", gpu: "NVIDIA GeForce RTX 4080 (12 ГБ VRAM, 175 Вт)", screen: "15.6\" QHD+ Mini-LED, 240 Гц, 1200 нит", cool: "Жидкий металл + Жидкостная система Quad-Fan", ports: "3x USB 3.2, 1x HDMI 2.1, 2x Type-C, Ethernet RJ45", bat: "99.9 Втч, до 5 часов / 2.50 кг", colors: [{n:"Matt Black", h:"#121314"}, {n:"Crimson Red", h:"#5e0b11"}] },
+                    { id: 2, name: "Studio Pro 16", desc: "Эталонная рабочая станция для сложного 3D-моделирования, цветокоррекции и видеомонтажа 8K.", cpu: "AMD Ryzen 9 8945HS (8 ядер, 5.2 ГГц)", ram: "64 ГБ DDR5 Dual Channel", gpu: "NVIDIA GeForce RTX 4090 (16 ГБ VRAM, 150 Вт)", screen: "16.0\" 4K OLED, 120 Гц, 100% DCI-P3, Delta E < 1", cool: "Испарительная камера + Двойной обдув", ports: "SD Express Card Reader, 2x USB4, 1x HDMI 2.1", bat: "96 Втч, до 9 часов / 1.98 кг", colors: [{n:"Platinum Silver", h:"#d5d8dc"}, {n:"Deep Carbon", h:"#212325"}] },
+                    { id: 3, name: "Carbon X1", desc: "Бизнес-ноутбук премиум-класса из углеродного волокна. Повышенная прочность по военным стандартам.", cpu: "Intel Core Ultra 7 165H (16 ядер, с блоком NPU AI)", ram: "32 ГБ LPDDR5X 7500 МГц", gpu: "Intel Arc Graphics (Интегрированная)", screen: "14.0\" 2.8K OLED, 120 Гц, матовый антиблик", cool: "Два ультратонких вентилятора из графена", ports: "2x Thunderbolt 4, 2x USB-A 3.2, Слот для SIM 5G", bat: "57 Втч, до 14 часов / 1.09 кг", colors: [{n:"Forged Carbon", h:"#1c1d1f"}] },
+                    { id: 4, name: "Zen Flip 14", desc: "Универсальный ноутбук-трансформер с сенсорным экраном, раскрывающийся на 180 градусов. Поддерживает стилус.", cpu: "Intel Core Ultra 5 125H (14 ядер)", ram: "16 ГБ LPDDR5X", gpu: "Intel Graphics", screen: "14.0\" 3K Touch OLED, 90 Гц, разворот 180°", cool: "Интеллектуальная тихая система IceBlade", ports: "1x USB 3.2, 2x Thunderbolt 4, 1x HDMI 2.1", bat: "75 Втч, до 15 часов / 1.35 кг", colors: [{n:"Ponder Blue", h:"#202a3a"}, {n:"Sakura Mist", h:"#decbc6"}] },
+                    { id: 5, name: "Stream Fluid 15", desc: "Стильный и молодежный ноутбук со стеклянной крышкой и неоновой кастомизируемой подсветкой корпуса.", cpu: "AMD Ryzen 7 7840HS (8 ядер)", ram: "16 ГБ DDR5", gpu: "NVIDIA RTX 4060 (8 ГБ VRAM)", screen: "15.6\" FHD IPS, 144 Гц, 100% sRGB", cool: "Классическая радиаторная система (4 теплотрубки)", ports: "1x Type-C, 3x USB 3.2, Кардридер MicroSD", bat: "60 Втч, до 7 часов / 1.80 кг", colors: [{n:"Aurora White", h:"#f2f4f7"}, {n:"Neon Mint", h:"#a2e8dd"}] },
+                    { id: 6, name: "Cyber Deck 17", desc: "Огромный игровой ноутбук замещающий стационарный ПК. Лучшая акустическая система с сабвуфером.", cpu: "Intel Core i9-14900HX (24 ядра)", ram: "64 ГБ DDR5 (2х32 ГБ)", gpu: "NVIDIA GeForce RTX 4090 (16 ГБ, Полная мощность)", screen: "17.3\" UHD+ IPS, 144 Гц, G-Sync", cool: "Массивная медная пластина + 4 радиатора", ports: "Full-size SD, 2x DP через Type-C, Mini-DP, HDMI", bat: "99.9 Втч, до 3 часов / 3.40 кг", colors: [{n:"Obsidian", h:"#0b0c0e"}] },
+                    { id: 7, name: "Workstation 15", desc: "Надежный инструмент со специализированной видеокартой для инженеров, архитекторов и CAD-проектирования.", cpu: "Intel Xeon w5-2445X (Профессиональный)", ram: "64 ГБ DDR5 ECC (С коррекцией ошибок)", gpu: "NVIDIA RTX 2000 Ada Generation (16 ГБ)", screen: "15.6\" FHD IPS, антибликовое покрытие", cool: "Усиленная турбинная система охлаждения", ports: "SmartCard Reader, LAN 2.5 Gbps, 3x Thunderbolt 4", bat: "90 Втч, сертифицирован ISV / 2.20 кг", colors: [{n:"Industrial Gray", h:"#4a4c50"}] },
+                    { id: 8, name: "Eco Green 14", desc: "Экологичный ноутбук, корпус которого полностью отлит из переработанного океанического пластика.", cpu: "Intel Core i5-1340P (12 ядер)", ram: "8 ГБ LPDDR5", gpu: "Intel Iris Xe Graphics", screen: "14.0\" FHD IPS, низкое энергопотребление", cool: "Один тихий вентилятор эко-сплава", ports: "1x Type-C, 2x USB 3.2, HDMI", bat: "50 Втч, быстрая зарядка за 30 мин / 1.40 кг", colors: [{n:"Forest Green", h:"#2b3d32"}, {n:"Eco Straw", h:"#d2caae"}] },
+                    { id: 9, name: "Quantum 13", desc: "Концептуальный ноутбук со сверхбыстрым ИИ-процессором следующего поколения и прозрачным тачпадом.", cpu: "Snapdragon X Elite ИИ-чип (45 TOPS)", ram: "32 ГБ LPDDR5X", gpu: "Adreno X1 GPU", screen: "13.4\" Dual-Layer OLED, 120 Гц, 1000 нит", cool: "Безвентиляторное охлаждение на основе графена", ports: "3x USB4 (Type-C), Слот для e-SIM", bat: "70 Втч, до 22 часов видео / 0.99 кг", colors: [{n:"Anodized Blue", h:"#1b2c42"}, {n:"Gold Rush", h:"#d4af37"}] }
+                ]
+            },
+            en: {
+                sub: "Ultra-Quality 3D Showroom", hold: "Hold click for cinematic studio focus",
+                labels: { cpu:"Processor", ram:"RAM", gpu:"Graphics", screen:"Display", cool:"Cooling", ports:"Interfaces", bat:"Battery & Weight" },
+                laptops: [
+                    { id: 0, name: "Aero Air 13", desc: "Aircraft-grade aluminum ultrabook. The perfect balance of weight, battery life, and style for creators.", cpu: "Apple M3 (8-core, 4.0 GHz)", ram: "16 GB LPDDR5X Unified", gpu: "10-core Apple Graphics architecture", screen: "13.6\" Liquid Retina, 2560x1664, 500 nits", cool: "Passive Thermal Design (0 dB, fanless)", ports: "2x Thunderbolt 4, MagSafe 3, Audio Jack", bat: "52.6 Wh, up to 18h / 1.24 kg", colors: [{n:"Space Gray", h:"#2e3033"}, {n:"Silver", h:"#e3e4e5"}, {n:"Midnight", h:"#1e232a"}] },
+                    { id: 1, name: "Titan 15 Pro", desc: "Extreme gaming monster. Easily runs any AAA title on ultra settings with stable peak framerates.", cpu: "Intel Core i9-14900HX (24-core, 5.8 GHz)", ram: "32 GB DDR5 5600 MHz", gpu: "NVIDIA GeForce RTX 4080 (12 GB VRAM, 175W)", screen: "15.6\" QHD+ Mini-LED, 240Hz, 1200 nits", cool: "Liquid Metal + Quad-Fan Thermal System", ports: "3x USB 3.2, 1x HDMI 2.1, 2x Type-C, RJ45", bat: "99.9 Wh, up to 5 hours / 2.50 kg", colors: [{n:"Matt Black", h:"#121314"}, {n:"Crimson Red", h:"#5e0b11"}] },
+                    { id: 2, name: "Studio Pro 16", desc: "Ultimate creative workstation for heavy 3D modeling, color grading, and 8K cinematic editing.", cpu: "AMD Ryzen 9 8945HS (8-core, 5.2 GHz)", ram: "64 GB DDR5 Dual Channel", gpu: "NVIDIA GeForce RTX 4090 (16 GB VRAM, 150W)", screen: "16.0\" 4K OLED, 120Hz, 100% DCI-P3, Delta E < 1", cool: "Vapor Chamber Technology + Dual High-Flow Fans", ports: "SD Express Card Reader, 2x USB4, 1x HDMI 2.1", bat: "96 Wh, up to 9 hours / 1.98 kg", colors: [{n:"Platinum Silver", h:"#d5d8dc"}, {n:"Deep Carbon", h:"#212325"}] },
+                    { id: 3, name: "Carbon X1", desc: "Premium business notebook built from woven carbon fiber. Military-grade ultra durable chassis.", cpu: "Intel Core Ultra 7 165H (With AI NPU Engine)", ram: "32 GB LPDDR5X 7500 MHz", gpu: "Intel Arc Graphics (Integrated)", screen: "14.0\" 2.8K OLED, 120Hz, Anti-glare Matte", cool: "Dual ultra-thin Graphene cooling fans", ports: "2x Thunderbolt 4, 2x USB-A 3.2, 5G SIM Slot", bat: "57 Wh, up to 14 hours / 1.09 kg", colors: [{n:"Forged Carbon", h:"#1c1d1f"}] },
+                    { id: 4, name: "Zen Flip 14", desc: "Versatile 2-in-1 touchscreen convertible laptop. Rotates 180 degrees and supports stylus inputs.", cpu: "Intel Core Ultra 5 125H (14-core)", ram: "16 GB LPDDR5X", gpu: "Intel Graphics Node", screen: "14.0\" 3K Touch OLED, 90Hz, 180° Hinge", cool: "Intelligent Whisper-Quiet IceBlade Fan", ports: "1x USB 3.2, 2x Thunderbolt 4, 1x HDMI 2.1", bat: "75 Wh, up to 15 hours / 1.35 kg", colors: [{n:"Ponder Blue", h:"#202a3a"}, {n:"Sakura Mist", h:"#decbc6"}] },
+                    { id: 5, name: "Stream Fluid 15", desc: "Youthful and stylish layout featuring a glass top-cover and fully dynamic customizable ambient chassis lighting.", cpu: "AMD Ryzen 7 7840HS (8-core)", ram: "16 GB DDR5", gpu: "NVIDIA RTX 4060 (8 GB VRAM)", screen: "15.6\" FHD IPS, 144Hz, 100% sRGB", cool: "Classic 4-Heatpipe Dual Airway system", ports: "1x Type-C, 3x USB 3.2, MicroSD Slot", bat: "60 Wh, up to 7 hours / 1.80 kg", colors: [{n:"Aurora White", h:"#f2f4f7"}, {n:"Neon Mint", h:"#a2e8dd"}] },
+                    { id: 6, name: "Cyber Deck 17", desc: "Massive desktop-replacement gaming rig. Top-tier internal audio array with dedicated low-frequency subwoofers.", cpu: "Intel Core i9-14900HX (24-core)", ram: "64 GB DDR5 (2x32 GB)", gpu: "NVIDIA GeForce RTX 4090 (16 GB, Full TGP Max)", screen: "17.3\" UHD+ IPS, 144Hz, G-Sync ready", cool: "Copper Block plate + 4 Massive Heat Outlets", ports: "Full-size SD, 2x DP over Type-C, Mini-DP, HDMI", bat: "99.9 Wh, up to 3 hours / 3.40 kg", colors: [{n:"Obsidian", h:"#0b0c0e"}] },
+                    { id: 7, name: "Workstation 15", desc: "Heavy-duty machine equipped with specialized GPUs certified for CAD engineers and architectural tasks.", cpu: "Intel Xeon w5-2445X Pro-Grade", ram: "64 GB DDR5 ECC (Error-Correcting Memory)", gpu: "NVIDIA RTX 2000 Ada Generation (16 GB)", screen: "15.6\" FHD IPS, Pro Anti-Reflective", cool: "High-Pressure Turbine Exhaust System", ports: "SmartCard Reader, LAN 2.5 Gbps, 3x Thunderbolt 4", bat: "90 Wh, Full ISV Certified / 2.20 kg", colors: [{n:"Industrial Gray", h:"#4a4c50"}] },
+                    { id: 8, name: "Eco Green 14", desc: "Eco-friendly laptop made fully out of ocean-bound recycled polymers and sustainable materials.", cpu: "Intel Core i5-1340P (12-core)", ram: "8 GB LPDDR5", gpu: "Intel Iris Xe Graphics Engine", screen: "14.0\" FHD IPS Eco low-power matrix", cool: "Single bio-alloy silent system fan", ports: "1x Type-C, 2x USB 3.2, HDMI", bat: "50 Wh, 30-min Quick Charge / 1.40 kg", colors: [{n:"Forest Green", h:"#2b3d32"}, {n:"Eco Straw", h:"#d2caae"}] },
+                    { id: 9, name: "Quantum 13", desc: "Next-gen concept laptop loaded with a hyper-speed AI processor chip and a full transparent trackpad panel.", cpu: "Snapdragon X Elite Neural Engine (45 TOPS)", ram: "32 GB LPDDR5X", gpu: "Adreno X1 Core GPU", screen: "13.4\" Dual-Layer OLED, 120Hz, 1000 nits", cool: "Zero-noise passive graphene dispersion matrix", ports: "3x USB4 (Type-C), e-SIM Slot array", bat: "70 Wh, up to 22h Video Playback / 0.99 kg", colors: [{n:"Anodized Blue", h:"#1b2c42"}, {n:"Gold Rush", h:"#d4af37"}] }
+                ]
+            }
+        };
+
+        let currentLang = "ru";
+        let activeModelId = 0;
+        let activeColorHex = database[currentLang].laptops[0].colors[0].h;
+
+        // --- ИНИЦИАЛИЗАЦИЯ ВЫСОКОКАЧЕСТВЕННОЙ СЦЕНЫ THREE.JS ---
+        const container = document.getElementById('webgl-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x060608);
+        scene.fog = new THREE.FogExp2(0x060608, 0.12); // Создает глубокую затененную дымку
+
+        const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 3, 7);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Очень мягкие, реалистичные тени
+        renderer.toneMapping = THREE.ACESFilmicToneMapping; // Кинематографичная цветокоррекция
+        renderer.toneMappingExposure = 1.1;
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.04;
+        controls.maxPolarAngle = Math.PI / 2 - 0.02; // Камера не падает ниже пола
+        controls.minDistance = 3.5;
+        controls.maxDistance = 9;
+
+        // --- МНОГОУРОВНЕВОЕ ЯРКОЕ ОСВЕЩЕНИЕ (Кино-студия) ---
+        const ambient = new THREE.AmbientLight(0xffffff, 0.6); // Свет заполнения теней
+        scene.add(ambient);
+
+        // Главный мощный софтбокс сверху
+        const mainLight = new THREE.DirectionalLight(0xffffff, 2.5);
+        mainLight.position.set(4, 10, 4);
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.width = 2048; // Высокое разрешение карты теней
+        mainLight.shadow.mapSize.height = 2048;
+        mainLight.shadow.bias = -0.0001;
+        scene.add(mainLight);
+
+        // Задний контрастный неоновый свет для подсветки углов и металлических фасок
+        const rimLightBlue = new THREE.PointLight(0x0071e3, 3, 12);
+        rimLightBlue.position.set(-4, 2, -3);
+        scene.add(rimLightBlue);
+
+        const rimLightWhite = new THREE.DirectionalLight(0xffffff, 1.5);
+        rimLightWhite.position.set(-6, 3, -2);
+        scene.add(rimLightWhite);
+
+        // --- ГЛЯНЦЕВЫЙ ПОДИУМ (ПОЛ) ---
+        const floorGeo = new THREE.PlaneGeometry(60, 60);
+        const floorMat = new THREE.MeshStandardMaterial({ 
+            color: 0x0a0b0d, roughness: 0.18, metalness: 0.6 
+        });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.y = -1.1;
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        // --- ВЫСОКОДЕТАЛИЗИРОВАННАЯ ГЕНЕРАЦИЯ 3D-МОДЕЛИ НОУТБУКА ---
+        let laptopGroup = new THREE.Group();
+        laptopGroup.position.y = -0.3;
+        scene.add(laptopGroup);
+
+        let bodyMesh, screenGroup;
+
+        function buildHighlyDetailedLaptop(colorHex) {
+            // Очистка сцены от старой модели
+            while(laptopGroup.children.length > 0){ 
+                laptopGroup.remove(laptopGroup.children[0]); 
+            }
+
+            const primaryColor = new THREE.Color(colorHex);
+            
+            // Настройка PBR материалов высокого качества
+            const alloyMaterial = new THREE.MeshStandardMaterial({ 
+                color: primaryColor, roughness: 0.18, metalness: 0.85 
+            });
+            const innerPlastics = new THREE.MeshStandardMaterial({ 
+                color: 0x141518, roughness: 0.4, metalness: 0.2 
+            });
+            const screenGlass = new THREE.MeshStandardMaterial({ 
+                color: 0x010101, roughness: 0.05, metalness: 0.9, emissive: 0x0a0a0a
+            });
+            const trackpadMat = new THREE.MeshStandardMaterial({ 
+                color: primaryColor, roughness: 0.35, metalness: 0.5 
+            });
+            const logoMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+            // 1. ОСНОВАНИЕ КОРПУСА (Скруглённый топкейс)
+            const baseGroup = new THREE.Group();
+            
+            const mainBase = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.08, 1.8), alloyMaterial);
+            mainBase.castShadow = true; mainBase.receiveShadow = true;
+            baseGroup.add(mainBase);
+
+            // 2. ВЫРЕЗ ПОД КЛАВИАТУРУ
+            const kbPlate = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.01, 1.0), innerPlastics);
+            kbPlate.position.set(0, 0.041, -0.1);
+            baseGroup.add(kbPlate);
+
+            // Имитация клавиш (Ряды кнопок единой сеткой для экономии кода)
+            const keysGeo = new THREE.BoxGeometry(2.26, 0.02, 0.96);
+            const keys = new THREE.Mesh(keysGeo, new THREE.MeshStandardMaterial({color: 0x1c1d22, roughness: 0.5}));
+            keys.position.set(0, 0.05, -0.1);
+            baseGroup.add(keys);
+
+            // 3. СТЕКЛЯННЫЙ ТРЕКПАД
+            const pad = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.45), trackpadMat);
+            pad.rotation.x = -Math.PI / 2;
+            pad.position.set(0, 0.042, 0.52);
+            baseGroup.add(pad);
+
+            // 4. ДЕТАЛИЗАЦИЯ: Резиновые ножки на днище ноутбука
+            const footGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.02, 16);
+            const foot1 = new THREE.Mesh(footGeo, innerPlastics); foot1.position.set(1.1, -0.05, 0.6);
+            const foot2 = new THREE.Mesh(footGeo, innerPlastics); foot2.position.set(-1.1, -0.05, 0.6);
+            const foot3 = new THREE.Mesh(footGeo, innerPlastics); foot3.position.set(1.1, -0.05, -0.6);
+            const foot4 = new THREE.Mesh(footGeo, innerPlastics); foot4.position.set(-1.1, -0.05, -0.6);
+            baseGroup.add(foot1, foot2, foot3, foot4);
+
+            // 5. ДЕТАЛИЗАЦИЯ: Боковые вырезы под порты USB/Thunderbolt
+            const portGeo = new THREE.BoxGeometry(0.02, 0.02, 0.1);
+            const port1 = new THREE.Mesh(portGeo, innerPlastics); port1.position.set(1.301, 0.01, 0.2);
+            const port2 = new THREE.Mesh(portGeo, innerPlastics); port2.position.set(1.301, 0.01, 0.4);
+            const port3 = new THREE.Mesh(portGeo, innerPlastics); port3.position.set(-1.301, 0.01, 0.3);
+            baseGroup.add(port1, port2, port3);
+
+            laptopGroup.add(baseGroup);
+
+            // 6. КРЫШКА И МАТРИЦА ЭКРАНА (Блок вращения на петлях)
+            screenGroup = new THREE.Group();
+            screenGroup.position.set(0, 0.04, -0.88); // Точка крепления петли крышки
+
+            // Внешняя крышка из сплава
+            const lid = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.7, 0.04), alloyMaterial);
+            lid.position.y = 0.85; lid.castShadow = true;
+            screenGroup.add(lid);
+
+            // Матрица экрана дисплея
+            const display = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 1.6), screenGlass);
+            display.position.set(0, 0.85, 0.021);
+            screenGroup.add(display);
+
+            // Тонкая внутренняя рамка экрана
+            const frameBezel = new THREE.Mesh(new THREE.BoxGeometry(2.56, 1.66, 0.005), innerPlastics);
+            frameBezel.position.set(0, 0.85, 0.02);
+            screenGroup.add(frameBezel);
+
+            // Светящийся логотип на внешней стороне крышки
+            const logo = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.005), logoMaterial);
+            logo.position.set(0, 0.85, -0.021);
+            screenGroup.add(logo);
+
+            // Задаем угол открытия дисплея
+            screenGroup.rotation.x = Math.PI / 2.4;
+            laptopGroup.add(screenGroup);
+        }
+
+        // --- ОБНОВЛЕНИЕ ТЕКСТА И HUD НА СТРАНИЦЕ ---
+        function refreshUI() {
+            const currentData = database[currentLang];
+            const currentLaptop = currentData.laptops[activeModelId];
+
+            document.getElementById('p-title').innerText = currentLaptop.name;
+            document.getElementById('p-desc').innerText = currentLaptop.desc;
+            document.getElementById('v-cpu').innerText = currentLaptop.cpu;
+            document.getElementById('v-ram').innerText = currentLaptop.ram;
+            document.getElementById('v-gpu').innerText = currentLaptop.gpu;
+            document.getElementById('v-screen').innerText = currentLaptop.screen;
+            document.getElementById('v-cool').innerText = currentLaptop.cool;
+            document.getElementById('v-ports').innerText = currentLaptop.ports;
+            document.getElementById('v-bat').innerText = currentLaptop.bat;
+
+            document.getElementById('lbl-cpu').innerText = currentData.labels.cpu;
+            document.getElementById('lbl-ram').innerText = currentData.labels.ram;
+            document.getElementById('lbl-gpu').innerText = currentData.labels.gpu;
+            document.getElementById('lbl-screen').innerText = currentData.labels.screen;
+            document.getElementById('lbl-cool').innerText = currentData.labels.cool;
+            document.getElementById('lbl-ports').innerText = currentData.labels.ports;
+            document.getElementById('lbl-bat').innerText = currentData.labels.bat;
+
+            document.getElementById('l-sub').innerText = currentData.sub;
+            document.getElementById('l-hold').innerText = currentData.hold;
+
+            // Генерация точек выбора цвета палитры
+            const paletteBox = document.getElementById('palette-box');
+            paletteBox.innerHTML = '';
+            currentLaptop.colors.forEach(color => {
+                const dot = document.createElement('div');
+                dot.className = `palette-dot ${color.h === activeColorHex ? 'active' : ''}`;
+                dot.style.backgroundColor = color.h;
+                dot.innerHTML = `<div class="color-tooltip">${color.n}</div>`;
+                dot.onclick = () => {
+                    activeColorHex = color.h;
+                    buildHighlyDetailedLaptop(color.h);
+                    refreshUI();
+                };
+                paletteBox.appendChild(dot);
+            });
+
+            // Генерация горизонтального слайдера из 10 вкладок
+            const tabsBox = document.getElementById('tabs-box');
+            tabsBox.innerHTML = '';
+            currentData.laptops.forEach(lap => {
+                const button = document.createElement('button');
+                button.className = `tab-btn ${lap.id === activeModelId ? 'active' : ''}`;
+                button.onclick = () => {
+                    activeModelId = lap.id;
+                    activeColorHex = database[currentLang].laptops[lap.id].colors[0].h;
+                    buildHighlyDetailedLaptop(activeColorHex);
+
+                    // Плавный вылет и разворот при клике на модель
+                    gsap.from(laptopGroup.position, { y: 0.8, duration: 0.5, ease: "power2.out" });
+                    gsap.from(laptopGroup.rotation, { y: Math.PI / 2, duration: 0.7, ease: "power2.out" });
+                    
+                    refreshUI();
+                };
+                button.innerHTML = `
+                    <svg viewBox="0 0 24 24"><path d="M20,18H4V6H20M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4M24,22H0V24H24V22Z"/></svg>
+                    ${lap.name}
+                `;
+                tabsBox.appendChild(button);
+            });
+        }
+
+        function changeLanguage() {
+            currentLang = currentLang === "ru" ? "en" : "ru";
+            document.getElementById('l-lang').innerText = currentLang === "ru" ? "EN" : "RU";
+            refreshUI();
+        }
+
+        // --- ЭФФЕКТ СТУДИЙНОЙ СИНЕМАТИЧНОЙ СЪЕМКИ ПРИ ЗАЖАТИИ ---
+        let holdActive = false;
+
+        function triggerHoldMode() {
+            holdActive = true;
+            // Камера эффектно наводится на фокус под красивым углом, крышка приоткрывается
+            gsap.to(camera.position, { x: 1.8, y: 0.8, z: 3.2, duration: 1.4, ease: "power3.out" });
+            gsap.to('.hud-frame', { backgroundColor: "rgba(0,0,0,0.25)", borderColor: "rgba(255,255,255,0.2)", duration: 1.4 });
+            if(screenGroup) gsap.to(screenGroup.rotation, { x: Math.PI / 2.8, duration: 1 });
+        }
+
+        function releaseHoldMode() {
+            if (!holdActive) return;
+            holdActive = false;
+            // Возврат в базовую панораму
+            gsap.to(camera.position, { x: 0, y: 3, z: 7, duration: 0.8, ease: "power2.out" });
+            gsap.to('.hud-frame', { backgroundColor: "rgba(0,0,0,0)", borderColor: "rgba(255,255,255,0.03)", duration: 0.8 });
+            if(screenGroup) gsap.to(screenGroup.rotation, { x: Math.PI / 2.4, duration: 0.8 });
+        }
+
+        container.addEventListener('mousedown', triggerHoldMode);
+        window.addEventListener('mouseup', releaseHoldMode);
+        container.addEventListener('touchstart', triggerHoldMode);
+        window.addEventListener('touchend', releaseHoldMode);
+
+        // --- РЕНДЕР-ПЕТЛЯ (ANIMATION LOOP) ---
+        function renderLoop() {
+            requestAnimationFrame(renderLoop);
+
+            // Если пользователь не взаимодействует с 3D сценой — девайс медленно крутится для демонстрации бликов
+            if (!controls.state == -1 && !holdActive) {
+                laptopGroup.rotation.y += 0.0025;
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Инициализация
+        buildHighlyDetailedLaptop(activeColorHex);
+        refreshUI();
+        renderLoop();
+    </script>
+</body>
+</html>
