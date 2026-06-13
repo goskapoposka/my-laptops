@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Laptops</title>
+    <style>
+        /* --- CSS СТИЛИ (Оформление с нуля) --- */
+        :root {
+            --bg-color: #f4f7f6;
+            --text-color: #1a1a1a;
+            --accent-color: #0071e3;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .lang-switch button {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .lang-switch button:hover {
+            background: #0056b3;
+        }
+
+        .main-container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Интерактивные иконки-табы */
+        .laptop-tabs {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .tab-icon {
+            background: var(--card-bg);
+            border: 2px solid transparent;
+            padding: 15px 25px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .tab-icon:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+
+        .tab-icon.active {
+            border-color: var(--accent-color);
+            background: #e8f2ff;
+        }
+
+        .tab-icon svg {
+            width: 40px;
+            height: 40px;
+            fill: var(--text-color);
+        }
+
+        .tab-icon.active svg {
+            fill: var(--accent-color);
+        }
+
+        /* Карточка товара (Презентация) */
+        .product-card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 40px;
+            display: flex;
+            gap: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            width: 100%;
+            box-sizing: border-box;
+            align-items: center;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .product-card.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Имитация картинки ноутбука с помощью CSS */
+        .product-image-mock {
+            flex: 1;
+            height: 300px;
+            background: linear-gradient(135deg, #3a3d40 0%, #181719 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        .product-image-mock::after {
+            content: '';
+            position: absolute;
+            bottom: 10px;
+            width: 80%;
+            height: 4px;
+            background: #555;
+            border-radius: 2px;
+        }
+
+        .product-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .product-title {
+            margin: 0;
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .product-desc {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #666;
+        }
+
+        .specs-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+
+        .specs-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .price {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent-color);
+        }
+
+        /* Адаптивность для мобильных устройств */
+        @media (max-width: 768px) {
+            .product-card {
+                flex-direction: column;
+                padding: 20px;
+            }
+            header {
+                padding: 15px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo" id="site-logo">LaptopSpace</div>
+        <div class="lang-switch">
+            <button id="lang-btn" onclick="toggleLanguage()">EN</button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="laptop-tabs" id="tabs-container"></div>
+
+        <div class="product-card" id="product-card">
+            <div class="product-image-mock" id="product-img">
+                </div>
+            <div class="product-info">
+                <h1 class="product-title" id="product-title"></h1>
+                <p class="product-desc" id="product-desc"></p>
+                <ul class="specs-list" id="product-specs"></ul>
+                <div class="price" id="product-price"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* --- JAVASCRIPT (Логика, Данные и Интерактив) --- */
+
+        // 1. База данных товаров (прямо в коде, картинки заменены на красивый градиент цвета)
+        const laptopsData = [
+            {
+                id: "ultrabook",
+                iconText: "Air 13",
+                color: "linear-gradient(135deg, #e2e2e2 0%, #8e9eab 100%)",
+                ru: {
+                    title: "Ультрабук Aero Air 13",
+                    desc: "Сверхтонкий и легкий ноутбук для работы на ходу. Корпус из авиационного алюминия, потрясающий экран и батарея, которой хватает на весь день.",
+                    cpu: "Процессор: Энергоэффективный 8-ядерный",
+                    ram: "Оперативная память: 16 ГБ LPDDR5",
+                    storage: "Накопитель: 512 ГБ NVMe SSD",
+                    price: "89 900 ₽"
+                },
+                en: {
+                    title: "Ultrabook Aero Air 13",
+                    desc: "Ultra-thin and lightweight laptop for working on the go. Aircraft-grade aluminum body, stunning display, and all-day battery life.",
+                    cpu: "CPU: Energy-efficient 8-core",
+                    ram: "RAM: 16 GB LPDDR5",
+                    storage: "Storage: 512 GB NVMe SSD",
+                    price: "$999"
+                }
+            },
+            {
+                id: "gaming",
+                iconText: "Titan 15",
+                color: "linear-gradient(135deg, #1f4037 0%, #99f2c8 100%)",
+                ru: {
+                    title: "Игровой монстр Titan 15 Pro",
+                    desc: "Бескомпромиссная мощность для гейминга на максимальных настройках и видеомонтажа. Передовая система охлаждения и экран 144 Гц.",
+                    cpu: "Процессор: Топовый 14-ядерный",
+                    ram: "Оперативная память: 32 ГБ DDR5",
+                    storage: "Накопитель: 1 ТБ High-Speed SSD",
+                    price: "164 900 ₽"
+                },
+                en: {
+                    title: "Gaming Monster Titan 15 Pro",
+                    desc: "Uncompromising power for gaming at maximum settings and heavy video editing. Advanced cooling system and 144Hz smooth display.",
+                    cpu: "CPU: High-end 14-core",
+                    ram: "RAM: 32 GB DDR5",
+                    storage: "Storage: 1 TB High-Speed SSD",
+                    price: "$1850"
+                }
+            },
+            {
+                id: "creator",
+                iconText: "Studio 16",
+                color: "linear-gradient(135deg, #f4c4f3 0%, #fc67fa 100%)",
+                ru: {
+                    title: "Станция для творцов Studio 16",
+                    desc: "Идеальный инструмент для дизайнеров, фотографов и видеомонтажеров. Дисплей с идеальной цветопередачей 4K OLED.",
+                    cpu: "Процессор: Профессиональный 12-ядерный",
+                    ram: "Оперативная память: 64 ГБ",
+                    storage: "Накопитель: 2 ТБ Professional SSD",
+                    price: "210 000 ₽"
+                },
+                en: {
+                    title: "Creator Station Studio 16",
+                    desc: "The perfect tool for designers, photographers, and video editors. Display with perfect 4K OLED color accuracy.",
+                    cpu: "CPU: Professional 12-core",
+                    ram: "RAM: 64 GB DDR5",
+                    storage: "Storage: 2 TB Professional SSD",
+                    price: "$2399"
+                }
+            }
+        ];
+
+        // 2. Глобальное состояние сайта
+        let currentLanguage = "ru"; 
+        let activeLaptopId = laptopsData[0].id; // По умолчанию выбран первый ноутбук
+
+        // 3. Функция генерации иконок-табов
+        function renderTabs() {
+            const tabsContainer = document.getElementById('tabs-container');
+            tabsContainer.innerHTML = ''; // Очищаем
+
+            laptopsData.forEach(laptop => {
+                const tab = document.createElement('div');
+                tab.className = `tab-icon ${laptop.id === activeLaptopId ? 'active' : ''}`;
+                tab.onclick = () => selectLaptop(laptop.id);
+
+                // Вставляем схематичную SVG иконку ноутбука, чтобы не зависеть от внешних картинок
+                tab.innerHTML = `
+                    <svg viewBox="0 0 24 24">
+                        <path d="M20,18H4V6H20M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4M24,22H0V24H24V22Z" />
+                    </svg>
+                    <span style="font-weight:600; font-size:14px;">${laptop.iconText}</span>
+                `;
+                tabsContainer.appendChild(tab);
+            });
+        }
+
+        // 4. Функция обновления информации в карточке товара
+        function updateProductCard() {
+            const cardElement = document.getElementById('product-card');
+            // Убираем класс анимации для эффекта "перезагрузки" контента
+            cardElement.classList.remove('show');
+
+            // Находим данные выбранного ноутбука
+            const laptop = laptopsData.find(l => l.id === activeLaptopId);
+            const content = laptop[currentLanguage];
+
+            // Заполняем данные на выбранном языке
+            document.getElementById('product-title').innerText = content.title;
+            document.getElementById('product-desc').innerText = content.desc;
+            document.getElementById('product-price').innerText = content.price;
+
+            // Рендерим характеристики списком
+            const specsContainer = document.getElementById('product-specs');
+            specsContainer.innerHTML = `
+                <li>${content.cpu}</li>
+                <li>${content.ram}</li>
+                <li>${content.storage}</li>
+            `;
+
+            // Меняем внешний вид нашей "картинки-заглушки" (градиент и текст)
+            const imgMock = document.getElementById('product-img');
+            imgMock.style.background = laptop.color;
+            imgMock.innerText = laptop.iconText + " Display";
+
+            // Запускаем плавное появление с задержкой, чтобы анимация сработала красиво
+            setTimeout(() => {
+                cardElement.classList.add('show');
+            }, 50);
+        }
+
+        // 5. Логика переключения ноутбуков при клике на иконки
+        function selectLaptop(id) {
+            activeLaptopId = id;
+            renderTabs();       // Перерисовываем табы (чтобы сменить активную иконку)
+            updateProductCard(); // Обновляем информацию
+        }
+
+        // 6. Логика смены языка сайта (RU / EN)
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === "ru" ? "en" : "ru";
+            
+            // Меняем текст на кнопке переключения
+            document.getElementById('lang-btn').innerText = currentLanguage === "ru" ? "EN" : "RU";
+            
+            // Обновляем карточку с новым языком
+            updateProductCard();
+        }
+
+        // Инициализация сайта при первой загрузке страницы
+        renderTabs();
+        updateProductCard();
+    </script>
+</body>
+</html>
