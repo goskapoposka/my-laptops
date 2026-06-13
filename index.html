@@ -3,76 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Next-Gen 3D Laptop Configurator</title>
+    <title>Next-Gen 3D Laptop Showroom Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 
     <style>
         :root {
-            --bg: #060608;
-            --ui-white: #ffffff;
-            --ui-panel: rgba(10, 11, 14, 0.75);
-            --border: rgba(255, 255, 255, 0.08);
+            --bg-glass: rgba(255, 255, 255, 0.7);
+            --border: rgba(0, 0, 0, 0.05);
+            --text-dark: #121214;
+            --text-desc: rgba(0, 0, 0, 0.5);
             --accent: #0071e3;
         }
 
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
-            overflow: hidden; background-color: var(--bg);
+            overflow: hidden; background-color: #f0f0f5;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            color: var(--ui-white); user-select: none;
+            color: var(--text-dark); user-select: none;
+            -webkit-font-smoothing: antialiased;
         }
 
         #webgl-container {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
         }
 
-        /* --- HUD ИНТЕРФЕЙС ИЗ БУДУЩЕГО --- */
+        /* --- КИНЕМАТОГРАФИЧНЫЙ HUD ИНТЕРФЕЙС ИЗ БУДУЩЕГО --- */
         .hud-frame {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 10; pointer-events: none; box-sizing: border-box;
-            border: 16px solid rgba(255, 255, 255, 0.03);
+            border: 20px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.5s ease;
         }
 
         header {
-            position: absolute; top: 30px; left: 40px; right: 40px;
+            position: absolute; top: 40px; left: 40px; right: 40px;
             display: flex; justify-content: space-between; align-items: center;
             z-index: 20; pointer-events: auto;
         }
 
         .logo-block { display: flex; flex-direction: column; }
-        .logo-main { font-size: 22px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; background: linear-gradient(45deg, #fff, #8a8a93); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .logo-sub { font-size: 9px; opacity: 0.4; letter-spacing: 2px; margin-top: 4px; text-transform: uppercase; }
+        .logo-main { font-size: 24px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; }
+        .logo-sub { font-size: 10px; opacity: 0.4; letter-spacing: 2px; margin-top: 4px; text-transform: uppercase; }
 
         .lang-btn {
-            background: rgba(255,255,255,0.05); border: 1px solid var(--border);
-            color: white; padding: 8px 16px; border-radius: 20px;
-            cursor: pointer; font-weight: 600; font-size: 11px; backdrop-filter: blur(10px); transition: all 0.3s;
+            background: rgba(255,255,255,0.4); border: 1px solid var(--border);
+            color: var(--text-dark); padding: 10px 20px; border-radius: 20px;
+            cursor: pointer; font-weight: 700; font-size: 12px; backdrop-filter: blur(12px); transition: all 0.3s;
         }
-        .lang-btn:hover { background: white; color: black; box-shadow: 0 0 15px rgba(255,255,255,0.3); }
+        .lang-btn:hover { background: white; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
 
-        /* Левая информационная панель со спецификациями */
+        /* Левая информационная панель со спецификациями (Прозрачное стекло) */
         .specs-panel {
             position: absolute; left: 40px; top: 120px; bottom: 140px;
-            width: 360px; background: var(--ui-panel); border: 1px solid var(--border);
-            backdrop-filter: blur(25px); border-radius: 20px; padding: 30px;
+            width: 380px; background: var(--bg-glass); border: 1px solid var(--border);
+            backdrop-filter: blur(30px); border-radius: 24px; padding: 30px;
             box-sizing: border-box; z-index: 20; pointer-events: auto;
-            display: flex; flex-direction: column; justify-content: space-between;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-            overflow-y: auto;
+            display: flex; flex-direction: column; justify-content: flex-start;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.05);
+            overflow-y: auto; gap: 20px;
         }
 
-        .specs-panel::-webkit-scrollbar { width: 4px; }
-        .specs-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+        .specs-panel::-webkit-scrollbar { width: 3px; }
+        .specs-panel::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 2px; }
 
-        .product-title { font-size: 28px; font-weight: 800; margin: 0 0 10px 0; letter-spacing: -0.5px; }
-        .product-desc { font-size: 13px; opacity: 0.6; line-height: 1.6; margin: 0 0 20px 0; }
+        .product-title { font-size: 30px; font-weight: 800; margin: 0 0 5px 0; letter-spacing: -0.5px; }
+        .product-desc { font-size: 14px; color: var(--text-desc); line-height: 1.6; margin: 0; }
         
-        .tech-list { display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--border); padding-top: 15px; }
-        .tech-item { font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
-        .tech-label { opacity: 0.4; text-transform: uppercase; font-size: 9px; letter-spacing: 1px; }
-        .tech-val { font-weight: 500; opacity: 0.95; }
+        .tech-list { display: flex; flex-direction: column; gap: 14px; border-top: 1px solid var(--border); padding-top: 15px; }
+        .tech-item { display: flex; flex-direction: column; gap: 3px; }
+        .tech-label { opacity: 0.4; text-transform: uppercase; font-size: 9px; letter-spacing: 1.5px; font-weight: 600; color: #000; }
+        .tech-val { font-size: 13px; font-weight: 500; opacity: 0.95; line-height: 1.4; color: #111; }
 
         /* Нижний горизонтальный слайдер иконок (10 штук) */
         .tabs-wrapper {
@@ -81,52 +83,54 @@
         }
 
         .tabs-container {
-            display: flex; gap: 10px; background: var(--ui-panel);
+            display: flex; gap: 12px; background: var(--bg-glass);
             padding: 8px; border-radius: 40px; border: 1px solid var(--border);
-            backdrop-filter: blur(20px); max-width: 90%; overflow-x: auto;
+            backdrop-filter: blur(20px); max-width: 100%; overflow-x: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.05);
         }
         .tabs-container::-webkit-scrollbar { display: none; }
 
         .tab-btn {
-            background: transparent; border: none; padding: 10px 18px;
-            border-radius: 30px; color: rgba(255,255,255,0.5); cursor: pointer;
-            font-weight: 600; font-size: 12px; display: flex; align-items: center;
-            gap: 8px; white-space: nowrap; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: transparent; border: none; padding: 12px 20px;
+            border-radius: 30px; color: var(--text-desc); cursor: pointer;
+            font-weight: 600; font-size: 13px; display: flex; align-items: center;
+            gap: 10px; white-space: nowrap; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .tab-btn svg { width: 16px; height: 16px; fill: currentColor; }
-        .tab-btn:hover { color: white; background: rgba(255,255,255,0.03); }
+        .tab-btn:hover { color: var(--text-dark); background: rgba(0,0,0,0.03); }
         .tab-btn.active {
-            background: white; color: black; font-weight: 700;
-            box-shadow: 0 5px 15px rgba(255,255,255,0.25);
+            background: var(--accent); color: white; font-weight: 700;
+            box-shadow: 0 5px 15px rgba(0,113,227,0.3);
         }
 
         /* Выбор цветов внизу справа */
         .color-palette {
             position: absolute; right: 40px; top: 120px;
-            display: flex; flex-direction: column; gap: 14px;
-            background: var(--ui-panel); padding: 15px; border-radius: 30px;
+            display: flex; flex-direction: column; gap: 16px;
+            background: var(--bg-glass); padding: 15px; border-radius: 30px;
             border: 1px solid var(--border); backdrop-filter: blur(20px); z-index: 20; pointer-events: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.05);
         }
 
         .palette-dot {
-            width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
-            border: 2px solid transparent; transition: all 0.2s ease;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.4); position: relative;
+            width: 24px; height: 24px; border-radius: 50%; cursor: pointer;
+            border: 3px solid transparent; transition: all 0.2s ease;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); position: relative;
         }
         .palette-dot:hover { transform: scale(1.2); }
-        .palette-dot.active { border-color: white; transform: scale(1.1); }
+        .palette-dot.active { border-color: white; transform: scale(1.1); box-shadow: 0 0 10px rgba(0,0,0,0.2); }
         
         .color-tooltip {
-            position: absolute; right: 35px; top: 50%; transform: translateY(-50%) translateX(-10px);
-            background: black; color: white; font-size: 10px; padding: 4px 8px; border-radius: 4px;
+            position: absolute; right: 40px; top: 50%; transform: translateY(-50%) translateX(-10px);
+            background: #000; color: #fff; font-size: 10px; padding: 5px 10px; border-radius: 4px;
             white-space: nowrap; opacity: 0; pointer-events: none; transition: all 0.2s;
             border: 1px solid rgba(255,255,255,0.1);
         }
         .palette-dot:hover .color-tooltip { opacity: 1; transform: translateY(-50%) translateX(0); }
 
         .hint-hold {
-            position: absolute; top: 40px; left: 50%; transform: translateX(-50%);
-            font-size: 10px; letter-spacing: 3px; text-transform: uppercase; opacity: 0.3;
+            position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%);
+            font-size: 11px; letter-spacing: 3px; text-transform: uppercase; opacity: 0.3;
             z-index: 10; pointer-events: none;
         }
     </style>
@@ -169,7 +173,7 @@
     </div>
 
     <script>
-        // --- БАЗА ДАННЫХ ИЗ 10 НОУТБУКОВ НА ДВУХ ЯЗЫКАХ ---
+        // --- ЗАЩИЩЕННАЯ БАЗА ДАННЫХ ХАРАКТЕРИСТИК (10 МОДЕЛЕЙ) ---
         const database = {
             ru: {
                 sub: "Высокотехнологичный 3D Шоурум", hold: "Зажмите мышь для студийного фокуса",
@@ -209,57 +213,63 @@
         let activeModelId = 0;
         let activeColorHex = database[currentLang].laptops[0].colors[0].h;
 
-        // --- ИНИЦИАЛИЗАЦИЯ ВЫСОКОКАЧЕСТВЕННОЙ СЦЕНЫ THREE.JS ---
+        // --- ИНИЦИАЛИЗАЦИЯ HIGH-END 3D СЦЕНЫ (THREE.JS) ---
         const container = document.getElementById('webgl-container');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x060608);
-        scene.fog = new THREE.FogExp2(0x060608, 0.12); // Создает глубокую затененную дымку
+        scene.background = new THREE.Color(0xf0f0f5); // Яркий, чистый фон (Магазин Освещения)
+        scene.fog = new THREE.FogExp2(0xf0f0f5, 0.1); // Мягкий туман для глубины
 
         const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.set(0, 3, 7);
+        camera.position.set(0, 2.5, 6.5);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Очень мягкие, реалистичные тени
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Мягкие, реалистичные тени
         renderer.toneMapping = THREE.ACESFilmicToneMapping; // Кинематографичная цветокоррекция
-        renderer.toneMappingExposure = 1.1;
+        renderer.toneMappingExposure = 1.3; // Увеличиваем экспозицию для яркости
         container.appendChild(renderer.domElement);
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
-        controls.dampingFactor = 0.04;
-        controls.maxPolarAngle = Math.PI / 2 - 0.02; // Камера не падает ниже пола
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2 - 0.03; // Не даем камере падать под пол
         controls.minDistance = 3.5;
         controls.maxDistance = 9;
+        controls.autoRotate = true; // Родное плавное вращение
+        controls.autoRotateSpeed = 1.0;
 
-        // --- МНОГОУРОВНЕВОЕ ЯРКОЕ ОСВЕЩЕНИЕ (Кино-студия) ---
-        const ambient = new THREE.AmbientLight(0xffffff, 0.6); // Свет заполнения теней
+        // --- СЛОЖНАЯ СИСТЕМА ИНТЕНСИВНОГО СТУДИЙНОГО ОСВЕЩЕНИЯ (5 источников) ---
+        const ambient = new THREE.AmbientLight(0xffffff, 0.8); // Свет заполнения теней
         scene.add(ambient);
 
-        // Главный мощный софтбокс сверху
+        // Главный мощный DirectionalLight прожектор (Key Light)
         const mainLight = new THREE.DirectionalLight(0xffffff, 2.5);
-        mainLight.position.set(4, 10, 4);
+        mainLight.position.set(5, 10, 5);
         mainLight.castShadow = true;
-        mainLight.shadow.mapSize.width = 2048; // Высокое разрешение карты теней
+        mainLight.shadow.mapSize.width = 2048; // Высокое разрешение карт теней
         mainLight.shadow.mapSize.height = 2048;
         mainLight.shadow.bias = -0.0001;
         scene.add(mainLight);
 
-        // Задний контрастный неоновый свет для подсветки углов и металлических фасок
-        const rimLightBlue = new THREE.PointLight(0x0071e3, 3, 12);
-        rimLightBlue.position.set(-4, 2, -3);
+        // Задний контрастный неоновый свет для бликов на металле
+        const rimLightBlue = new THREE.PointLight(0x0071e3, 4, 12);
+        rimLightBlue.position.set(-4, 3, -3);
         scene.add(rimLightBlue);
 
         const rimLightWhite = new THREE.DirectionalLight(0xffffff, 1.5);
-        rimLightWhite.position.set(-6, 3, -2);
+        rimLightWhite.position.set(-7, 5, -2);
         scene.add(rimLightWhite);
 
-        // --- ГЛЯНЦЕВЫЙ ПОДИУМ (ПОЛ) ---
+        const topSpot = new THREE.SpotLight(0xffffff, 1.0, 10, Math.PI/4, 0.5);
+        topSpot.position.set(0, 7, 0);
+        scene.add(topSpot);
+
+        // --- ГЛЯНЦЕВЫЙ ЗЕРКАЛЬНЫЙ ПОДИУМ (ПОЛ) ---
         const floorGeo = new THREE.PlaneGeometry(60, 60);
         const floorMat = new THREE.MeshStandardMaterial({ 
-            color: 0x0a0b0d, roughness: 0.18, metalness: 0.6 
+            color: 0x07080a, roughness: 0.15, metalness: 0.8 // Очень глянцевый
         });
         const floor = new THREE.Mesh(floorGeo, floorMat);
         floor.rotation.x = -Math.PI / 2;
@@ -267,61 +277,85 @@
         floor.receiveShadow = true;
         scene.add(floor);
 
-        // --- ВЫСОКОДЕТАЛИЗИРОВАННАЯ ГЕНЕРАЦИЯ 3D-МОДЕЛИ НОУТБУКА ---
+        // --- ВЫСОКОДЕТАЛИЗИРОВАННАЯ Procedural Elite МОДЕЛЬ НОУТБУКА ---
         let laptopGroup = new THREE.Group();
         laptopGroup.position.y = -0.3;
         scene.add(laptopGroup);
 
         let bodyMesh, screenGroup;
 
-        function buildHighlyDetailedLaptop(colorHex) {
-            // Очистка сцены от старой модели
+        // Функция процедурной генерации Текстуры Карбона
+        function generateCarbonTexture() {
+            const size = 16;
+            const data = new Uint8Array(size * size * 3);
+            for (let i = 0; i < size * size; i++) {
+                const color = Math.random() < 0.5 ? 0x222222 : 0x050505;
+                data[i * 3 + 0] = (color >> 16) & 0xFF;
+                data[i * 3 + 1] = (color >> 8) & 0xFF;
+                data[i * 3 + 2] = color & 0xFF;
+            }
+            const texture = new THREE.DataTexture(data, size, size, THREE.RGBFormat);
+            texture.needsUpdate = true;
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(100, 100);
+            return texture;
+        }
+
+        function buildProceduralLaptop(modelName, colorHex) {
+            // Очистка от старой модели
             while(laptopGroup.children.length > 0){ 
                 laptopGroup.remove(laptopGroup.children[0]); 
             }
 
             const primaryColor = new THREE.Color(colorHex);
             
-            // Настройка PBR материалов высокого качества
-            const alloyMaterial = new THREE.MeshStandardMaterial({ 
-                color: primaryColor, roughness: 0.18, metalness: 0.85 
+            let alloyMaterial = new THREE.MeshStandardMaterial({ 
+                color: primaryColor, roughness: 0.22, metalness: 0.8 
             });
+
+            // Имитация Carbon Fiber для конкретной модели
+            if(modelName === "Carbon X1") {
+                alloyMaterial = new THREE.MeshStandardMaterial({
+                    map: generateCarbonTexture(), roughness: 0.3, metalness: 0.1, color: 0x222222
+                });
+            }
+
             const innerPlastics = new THREE.MeshStandardMaterial({ 
-                color: 0x141518, roughness: 0.4, metalness: 0.2 
+                color: 0x141518, roughness: 0.45, metalness: 0.1 
             });
             const screenGlass = new THREE.MeshStandardMaterial({ 
-                color: 0x010101, roughness: 0.05, metalness: 0.9, emissive: 0x0a0a0a
+                color: 0x010101, roughness: 0.04, metalness: 0.95, emissive: 0x0a0a0a // Свечение матрицы
             });
             const trackpadMat = new THREE.MeshStandardMaterial({ 
-                color: primaryColor, roughness: 0.35, metalness: 0.5 
+                color: primaryColor, roughness: 0.38, metalness: 0.4 
             });
             const logoMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
-            // 1. ОСНОВАНИЕ КОРПУСА (Скруглённый топкейс)
+            // 1. ОСНОВАНИЕ КОРПУСА (Топкейс Elite)
             const baseGroup = new THREE.Group();
-            
             const mainBase = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.08, 1.8), alloyMaterial);
             mainBase.castShadow = true; mainBase.receiveShadow = true;
             baseGroup.add(mainBase);
 
-            // 2. ВЫРЕЗ ПОД КЛАВИАТУРУ
+            // Решетка клавиатуры
             const kbPlate = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.01, 1.0), innerPlastics);
             kbPlate.position.set(0, 0.041, -0.1);
             baseGroup.add(kbPlate);
 
-            // Имитация клавиш (Ряды кнопок единой сеткой для экономии кода)
-            const keysGeo = new THREE.BoxGeometry(2.26, 0.02, 0.96);
-            const keys = new THREE.Mesh(keysGeo, new THREE.MeshStandardMaterial({color: 0x1c1d22, roughness: 0.5}));
+            // Имитация клавиш (Mesh)
+            const keysGeo = new THREE.BoxGeometry(2.26, 0.015, 0.96);
+            const keys = new THREE.Mesh(keysGeo, new THREE.MeshStandardMaterial({color: 0x1c1d22, roughness: 0.6}));
             keys.position.set(0, 0.05, -0.1);
             baseGroup.add(keys);
 
-            // 3. СТЕКЛЯННЫЙ ТРЕКПАД
+            // Стеклянный глянцевый трекпад
             const pad = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.45), trackpadMat);
             pad.rotation.x = -Math.PI / 2;
             pad.position.set(0, 0.042, 0.52);
             baseGroup.add(pad);
 
-            // 4. ДЕТАЛИЗАЦИЯ: Резиновые ножки на днище ноутбука
+            // Детализация днища (ножки)
             const footGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.02, 16);
             const foot1 = new THREE.Mesh(footGeo, innerPlastics); foot1.position.set(1.1, -0.05, 0.6);
             const foot2 = new THREE.Mesh(footGeo, innerPlastics); foot2.position.set(-1.1, -0.05, 0.6);
@@ -329,45 +363,38 @@
             const foot4 = new THREE.Mesh(footGeo, innerPlastics); foot4.position.set(-1.1, -0.05, -0.6);
             baseGroup.add(foot1, foot2, foot3, foot4);
 
-            // 5. ДЕТАЛИЗАЦИЯ: Боковые вырезы под порты USB/Thunderbolt
-            const portGeo = new THREE.BoxGeometry(0.02, 0.02, 0.1);
-            const port1 = new THREE.Mesh(portGeo, innerPlastics); port1.position.set(1.301, 0.01, 0.2);
-            const port2 = new THREE.Mesh(portGeo, innerPlastics); port2.position.set(1.301, 0.01, 0.4);
-            const port3 = new THREE.Mesh(portGeo, innerPlastics); port3.position.set(-1.301, 0.01, 0.3);
-            baseGroup.add(port1, port2, port3);
-
             laptopGroup.add(baseGroup);
 
-            // 6. КРЫШКА И МАТРИЦА ЭКРАНА (Блок вращения на петлях)
+            // 2. ДИСЦПЛЕЙНЫЙ БЛОК (Крышка на петлях)
             screenGroup = new THREE.Group();
-            screenGroup.position.set(0, 0.04, -0.88); // Точка крепления петли крышки
+            screenGroup.position.set(0, 0.04, -0.88); // Точная точка шарнира крышки
 
-            // Внешняя крышка из сплава
+            // Крышка дисплея из сплава
             const lid = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.7, 0.04), alloyMaterial);
             lid.position.y = 0.85; lid.castShadow = true;
             screenGroup.add(lid);
 
-            // Матрица экрана дисплея
+            // Матрица дисплея
             const display = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 1.6), screenGlass);
             display.position.set(0, 0.85, 0.021);
             screenGroup.add(display);
 
-            // Тонкая внутренняя рамка экрана
+            // Тонкая резиновая окантовка рамки экрана
             const frameBezel = new THREE.Mesh(new THREE.BoxGeometry(2.56, 1.66, 0.005), innerPlastics);
             frameBezel.position.set(0, 0.85, 0.02);
             screenGroup.add(frameBezel);
 
-            // Светящийся логотип на внешней стороне крышки
-            const logo = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.005), logoMaterial);
+            // Светящийся логотип на крышке
+            const logo = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.005), logoMaterial);
             logo.position.set(0, 0.85, -0.021);
             screenGroup.add(logo);
 
-            // Задаем угол открытия дисплея
-            screenGroup.rotation.x = Math.PI / 2.4;
+            // Задаем угол раскрытия
+            screenGroup.rotation.x = Math.PI / 2.3;
             laptopGroup.add(screenGroup);
         }
 
-        // --- ОБНОВЛЕНИЕ ТЕКСТА И HUD НА СТРАНИЦЕ ---
+        // --- ДИНАМИЧЕСКИЙ ОБНОВИТЕЛЬ ИНТЕРФЕЙСА ---
         function refreshUI() {
             const currentData = database[currentLang];
             const currentLaptop = currentData.laptops[activeModelId];
@@ -393,7 +420,7 @@
             document.getElementById('l-sub').innerText = currentData.sub;
             document.getElementById('l-hold').innerText = currentData.hold;
 
-            // Генерация точек выбора цвета палитры
+            // Цветовая палитра под конкретную модель
             const paletteBox = document.getElementById('palette-box');
             paletteBox.innerHTML = '';
             currentLaptop.colors.forEach(color => {
@@ -403,13 +430,13 @@
                 dot.innerHTML = `<div class="color-tooltip">${color.n}</div>`;
                 dot.onclick = () => {
                     activeColorHex = color.h;
-                    buildHighlyDetailedLaptop(color.h);
+                    buildProceduralLaptop(currentLaptop.name, color.h);
                     refreshUI();
                 };
                 paletteBox.appendChild(dot);
             });
 
-            // Генерация горизонтального слайдера из 10 вкладок
+            // Нижние табы переключения ноутбуков
             const tabsBox = document.getElementById('tabs-box');
             tabsBox.innerHTML = '';
             currentData.laptops.forEach(lap => {
@@ -418,11 +445,11 @@
                 button.onclick = () => {
                     activeModelId = lap.id;
                     activeColorHex = database[currentLang].laptops[lap.id].colors[0].h;
-                    buildHighlyDetailedLaptop(activeColorHex);
+                    buildProceduralLaptop(lap.name, activeColorHex);
 
-                    // Плавный вылет и разворот при клике на модель
-                    gsap.from(laptopGroup.position, { y: 0.8, duration: 0.5, ease: "power2.out" });
-                    gsap.from(laptopGroup.rotation, { y: Math.PI / 2, duration: 0.7, ease: "power2.out" });
+                    // Кинематографичная анимация смены устройства
+                    gsap.from(laptopGroup.position, { y: 0.6, duration: 0.6, ease: "power2.out" });
+                    gsap.from(laptopGroup.rotation, { y: Math.PI / 3, duration: 0.8, ease: "power2.out" });
                     
                     refreshUI();
                 };
@@ -440,24 +467,24 @@
             refreshUI();
         }
 
-        // --- ЭФФЕКТ СТУДИЙНОЙ СИНЕМАТИЧНОЙ СЪЕМКИ ПРИ ЗАЖАТИИ ---
+        // --- КИНО-РЕЖИМ НАВЕДЕНИЯ КАМЕРЫ ПРИ КЛИКЕ (FOCUSED SESS) ---
         let holdActive = false;
 
         function triggerHoldMode() {
             holdActive = true;
-            // Камера эффектно наводится на фокус под красивым углом, крышка приоткрывается
-            gsap.to(camera.position, { x: 1.8, y: 0.8, z: 3.2, duration: 1.4, ease: "power3.out" });
-            gsap.to('.hud-frame', { backgroundColor: "rgba(0,0,0,0.25)", borderColor: "rgba(255,255,255,0.2)", duration: 1.4 });
-            if(screenGroup) gsap.to(screenGroup.rotation, { x: Math.PI / 2.8, duration: 1 });
+            controls.autoRotate = false; // Отключаем автовращение при фокусе
+            gsap.to(camera.position, { x: 1.8, y: 0.7, z: 3.2, duration: 1.2, ease: "power3.out" });
+            gsap.to('.hud-frame', { backgroundColor: "rgba(0,0,0,0.1)", borderColor: "rgba(0,0,0,0.1)", duration: 1.2 });
+            if(screenGroup) gsap.to(screenGroup.rotation, { x: Math.PI / 2.6, duration: 1 });
         }
 
         function releaseHoldMode() {
             if (!holdActive) return;
             holdActive = false;
-            // Возврат в базовую панораму
-            gsap.to(camera.position, { x: 0, y: 3, z: 7, duration: 0.8, ease: "power2.out" });
-            gsap.to('.hud-frame', { backgroundColor: "rgba(0,0,0,0)", borderColor: "rgba(255,255,255,0.03)", duration: 0.8 });
-            if(screenGroup) gsap.to(screenGroup.rotation, { x: Math.PI / 2.4, duration: 0.8 });
+            controls.autoRotate = true; // Возвращаем автовращение
+            gsap.to(camera.position, { x: 0, y: 2.5, z: 6.5, duration: 0.8, ease: "power2.out" });
+            gsap.to('.hud-frame', { backgroundColor: "rgba(0,0,0,0)", borderColor: "rgba(255,255,255,0.3)", duration: 0.8 });
+            if(screenGroup) gsap.to(screenGroup.rotation, { x: Math.PI / 2.3, duration: 0.8 });
         }
 
         container.addEventListener('mousedown', triggerHoldMode);
@@ -465,27 +492,22 @@
         container.addEventListener('touchstart', triggerHoldMode);
         window.addEventListener('touchend', releaseHoldMode);
 
-        // --- РЕНДЕР-ПЕТЛЯ (ANIMATION LOOP) ---
+        // --- ЦИКЛ КЛАССИЧЕСКОГО РЕНДЕРИНГА (LOOP) ---
         function renderLoop() {
             requestAnimationFrame(renderLoop);
-
-            // Если пользователь не взаимодействует с 3D сценой — девайс медленно крутится для демонстрации бликов
-            if (!controls.state == -1 && !holdActive) {
-                laptopGroup.rotation.y += 0.0025;
-            }
-
-            controls.update();
+            controls.update(); // Демпфирование и нативное автовращение работают в связке
             renderer.render(scene, camera);
         }
 
+        // Поддержка изменения размеров окна браузера
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Инициализация
-        buildHighlyDetailedLaptop(activeColorHex);
+        // Первичный запуск конфигуратора
+        buildProceduralLaptop(database[currentLang].laptops[0].name, activeColorHex);
         refreshUI();
         renderLoop();
     </script>
